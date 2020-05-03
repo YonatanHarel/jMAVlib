@@ -253,6 +253,11 @@ public class MAVLinkLogReader implements LogReader {
     public void clearErrors() {
     }
 
+    @Override
+    public Map<String, List<Map<String, Object>>> getDataMapForExportToCsv() {
+        return null;
+    }
+
     public static void main(String[] args) throws Exception {
         MAVLinkLogReader reader = new MAVLinkLogReader("test.mavlink", new MAVLinkSchema("common.xml"));
         long tStart = System.currentTimeMillis();

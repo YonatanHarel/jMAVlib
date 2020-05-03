@@ -102,4 +102,11 @@ public interface LogReader {
      * Clear errors list.
      */
     void clearErrors();
+
+    /**
+     * Return map of topics and their fields and data.
+     * part of Export data to CSV file.
+     * @return
+     */
+    Map<String, List<Map<String, Object>>> getDataMapForExportToCsv();
 }

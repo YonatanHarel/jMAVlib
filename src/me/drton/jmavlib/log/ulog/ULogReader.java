@@ -58,6 +58,7 @@ public class ULogReader extends BinaryLogReader {
     private Map<String, Object> version = new HashMap<String, Object>();
     private Map<String, Object> parameters = new HashMap<String, Object>();
     public ArrayList<MessageLog> loggedMessages = new ArrayList<MessageLog>();
+    private Map<String, List<Map<String, Object>>> ulogData = new HashMap<String, List<Map<String, Object>>>();
 
     private String hardfaultPlainText = "";
 
@@ -658,5 +659,10 @@ public class ULogReader extends BinaryLogReader {
     @Override
     public void clearErrors() {
         errors.clear();
+    }
+
+    @Override
+    public Map<String, List<Map<String, Object>>> getDataMapForExportToCsv() {
+        return ulogData;
     }
 }

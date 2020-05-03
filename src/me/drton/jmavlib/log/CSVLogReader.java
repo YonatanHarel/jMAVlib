@@ -177,6 +177,11 @@ public class CSVLogReader implements LogReader {
     public void clearErrors() {
     }
 
+    @Override
+    public Map<String, List<Map<String, Object>>> getDataMapForExportToCsv() {
+        return null;
+    }
+
     public static void main(String[] args) throws Exception {
         CSVLogReader reader = new CSVLogReader("test.csv");
         long tStart = System.currentTimeMillis();

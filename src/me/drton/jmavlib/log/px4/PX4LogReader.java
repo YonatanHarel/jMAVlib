@@ -468,6 +468,11 @@ public class PX4LogReader extends BinaryLogReader {
         errors.clear();
     }
 
+    @Override
+    public Map<String, List<Map<String, Object>>> getDataMapForExportToCsv() {
+        return null;
+    }
+
     public static void main(String[] args) throws Exception {
         PX4LogReader reader = new PX4LogReader("test.bin");
         long tStart = System.currentTimeMillis();

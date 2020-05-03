@@ -327,6 +327,23 @@ public class ULogReader extends BinaryLogReader {
                 }
                 MessageData msgData = (MessageData) msg;
                 seekTimes.add(new SeekTime(msgData.timestamp, pos));
+                Map<String, Object> data = new HashMap<String, Object>();
+                for (FieldFormat field: msgData.format.fields) {
+                    if (field.isArray()) {
+                        List<Object> dataList = Arrays.asList((Object[])(msgData.get(field.name)));
+                        for (int j = 0; j < field.size; j++) {
+                            data.put(field.name + "[" + j + "]", dataList.get(j));
+                        }
+                    } else {
+                        data.put(field.name, msgData.get(field.name));
+                    }
+                }
+                List<Map<String, Object>> logData = ulogData.get(msgData.format.name);
+                if (null == logData) {
+                    logData = new ArrayList<Map<String, Object>>();
+                }
+                logData.add(data);
+                ulogData.put(msgData.format.name, logData);
 
                 if (timeStart < 0) {
                     timeStart = msgData.timestamp;

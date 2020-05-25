@@ -308,7 +308,7 @@ public class ULogReader extends BinaryLogReader {
                     version.put("HW", msgInfo.value);
                 } else if ("ver_sw".equals(msgInfo.getKey())) {
                     version.put("FW", msgInfo.value);
-                }else if ("ver_fc".equals(msgInfo.getKey())) {
+                }else if ("custom_version".equals(msgInfo.getKey())) {
                     version.put("FC_ver", msgInfo.value);
                 } else if ("time_ref_utc".equals(msgInfo.getKey())) {
                     utcTimeReference = ((long)((Number) msgInfo.value).intValue()) * 1000 * 1000;

@@ -6,8 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
-
 import javax.swing.JFileChooser;
+import org.apache.commons.io.FilenameUtils;
+import java.nio.file.Paths;
 
 import me.drton.jmavlib.log.BinaryLogReader;
 import me.drton.jmavlib.log.FormatErrorException;
@@ -64,7 +65,7 @@ public class ULogReader extends BinaryLogReader {
 
     private Vector<Long> appendedOffsets = new Vector<Long>();
     int currentAppendingOffsetIndex =
-        0; // current index to appendedOffsets for the next appended offset
+            0; // current index to appendedOffsets for the next appended offset
 
     public Map<String, List<ParamUpdate>> parameterUpdates;
     private boolean replayedLog = false;
@@ -285,11 +286,11 @@ public class ULogReader extends BinaryLogReader {
                 // a replayed log can contain many parameter updates, so we ignore them here
                 if (parameters.containsKey(msgParam.getKey()) && !replayedLog) {
                     System.out.println("update to parameter: " + msgParam.getKey() + " value: " + msgParam.value +
-                                       " at t = " + lastTime);
+                            " at t = " + lastTime);
                     // maintain a record of parameters which change during flight
                     if (parameterUpdates.containsKey(msgParam.getKey())) {
                         parameterUpdates.get(msgParam.getKey()).add(new ParamUpdate(msgParam.getKey(), msgParam.value,
-                                                                                    lastTime));
+                                lastTime));
                     } else {
                         List<ParamUpdate> updateList = new ArrayList<ParamUpdate>();
                         updateList.add(new ParamUpdate(msgParam.getKey(), msgParam.value, lastTime));
@@ -551,7 +552,7 @@ public class ULogReader extends BinaryLogReader {
             int sizeParsed = (int)(position() - pos - HDRLEN);
             if (sizeParsed != msgSize) {
                 errors.add(new FormatErrorException(pos,
-                                                    "Message size mismatch, parsed: " + sizeParsed + ", msg size: " + msgSize));
+                        "Message size mismatch, parsed: " + sizeParsed + ", msg size: " + msgSize));
                 buffer.position(buffer.position() + msgSize - sizeParsed);
             }
             return msg;
@@ -562,7 +563,7 @@ public class ULogReader extends BinaryLogReader {
     Dump each stream of message data records to a CSV file named "topic_N.csv"
     First line of each file is "timestamp,field1,field2,..."
      */
-    public static void main(String[] args) throws Exception {
+    public static void main_1(String[] args) throws Exception {
         ULogReader reader = null;
         JFileChooser openLogFileChooser = new JFileChooser();
         String basePath = "/home/markw/gdrive/flightlogs/logger";
@@ -583,7 +584,7 @@ public class ULogReader extends BinaryLogReader {
         for (Object aPSet : pSet) {
             Map.Entry param = (Map.Entry) aPSet;
             fileWriter.write(String.format("# name: %s\n#type: scalar\n%s\n", param.getKey(),
-                                           param.getValue()));
+                    param.getValue()));
         }
         fileWriter.close();
         long tStart = System.currentTimeMillis();
@@ -644,6 +645,126 @@ public class ULogReader extends BinaryLogReader {
 //                    curStream.print(',');
 //                    curStream.print(field.toString());
 //                }
+                curStream.println();
+                // check gyro stream for dropouts
+                if (stream.startsWith("SENSOR_GYRO")) {
+                    double dt = tsec - lastTimeStamp.get(stream);
+                    double rdt = Math.rint(1000 * dt) / 1000;
+                    if ((dt > 0) && (rdt < min_dt)) {
+                        min_dt = rdt;
+                        System.out.println("rdt: " + rdt);
+                    }
+                    if (dt > (5 * min_dt)) {
+                        System.out.println("gyro dropout: " + lastTimeStamp.get(stream) + ", length: " + dt);
+                    }
+                    lastTimeStamp.put(stream, tsec);
+                }
+            } catch (EOFException e) {
+                break;
+            }
+        }
+        long tEnd = System.currentTimeMillis();
+        for (Exception e : reader.getErrors()) {
+            e.printStackTrace();
+        }
+        System.out.println(tEnd - tStart);
+        reader.close();
+    }
+
+    public static void main(String[] args) throws Exception {
+        ULogReader reader = null;
+        if (args.length == 0) {
+            System.out.println("log file is missing");
+            System.exit(-1);
+        }
+        File log_file = new File(args[0]);
+        if (!log_file.exists()) {
+            System.out.println("log file not found.");
+            System.exit(-1);
+        }
+        //output folder would be like 'output_<log_file_name>'
+        String logFileStr = log_file.getName();
+        String basePath = "output_" + FilenameUtils.getBaseName(logFileStr);
+        File output_dir = new File(basePath);
+        //Creating the directory
+        boolean bool = output_dir.mkdir();
+        if(bool){
+            System.out.println("Directory created successfully");
+        }else{
+            System.out.println("Sorry couldn’t create specified directory");
+        }
+        String fullPath = Paths.get(System.getProperty("user.dir")).toRealPath().toString();
+        String logFileName = log_file.getAbsolutePath();
+        reader = new ULogReader(logFileName);
+
+        // write all parameters to a gnu Octave data file
+        FileWriter fileWriter = new FileWriter(new File(basePath + File.separator + "parameters.text"));
+        Map<String, Object> tmap = new TreeMap<String, Object>(reader.parameters);
+        Set pSet = tmap.entrySet();
+        for (Object aPSet : pSet) {
+            Map.Entry param = (Map.Entry) aPSet;
+            fileWriter.write(String.format("# name: %s\n#type: scalar\n%s\n", param.getKey(),
+                    param.getValue()));
+        }
+        fileWriter.close();
+        long tStart = System.currentTimeMillis();
+        double last_t = 0;
+        double last_p = 0;
+        Map<String, PrintStream> ostream = new HashMap<String, PrintStream>();
+        Map<String, Double> lastTimeStamp = new HashMap<String, Double>();
+        double min_dt = 1;
+        while (true) {
+            //            try {
+            //                Object msg = reader.readMessage();
+            //                System.out.println(msg);
+            //            } catch (EOFException e) {
+            //                break;
+            //            }
+            Map<String, Object> update = new HashMap<String, Object>();
+            try {
+                long t = reader.readUpdate(update);
+                double tsec = (double)t / 1e6;
+                if (tsec > (last_p + 1)) {
+                    last_p = tsec;
+                    System.out.printf("%8.0f\n", tsec);
+                }
+                // keys in Map "update" are fieldnames beginning with the topic name e.g. SENSOR_GYRO_0.someField
+                // Create a printstream for each topic when it is first encountered
+                Set<String> keySet = update.keySet();
+                String stream = keySet.iterator().next().split("\\.")[0];
+                if (!ostream.containsKey(stream)) {
+                    System.out.println("creating stream " + stream);
+                    PrintStream newStream = new PrintStream(basePath + File.separator + stream + ".csv");
+                    ostream.put(stream, newStream);
+                    lastTimeStamp.put(stream, tsec);
+                    Iterator<String> keys = keySet.iterator();
+                    newStream.print("timestamp");
+                    while (keys.hasNext()) {
+                        String fieldName = keys.next();
+                        if (!fieldName.contains("_padding") && fieldName != "timestamp") {
+                            newStream.print(',');
+                            newStream.print(fieldName);
+                        }
+                    }
+                    newStream.println();
+                }
+                // append this record to output stream
+                PrintStream curStream = ostream.get(stream);
+                // timestamp is always first entry in record
+                curStream.print(t);
+                // for each non-padding field, print value
+                Iterator<String> keys = keySet.iterator();
+                while (keys.hasNext()) {
+                    String fieldName = keys.next();
+                    if (!fieldName.contains("_padding") && fieldName != "timestamp") {
+                        curStream.print(',');
+                        curStream.print(update.get(fieldName));
+                    }
+                }
+                //                for (Object field: update.values()) {
+                //                    curStream.print(',');
+                //                    curStream.print(field.toString());
+                //                }
                 curStream.println();
                 // check gyro stream for dropouts
                 if (stream.startsWith("SENSOR_GYRO")) {

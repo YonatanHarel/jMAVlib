@@ -169,6 +169,11 @@ public class CSVLogReader implements LogReader {
     }
 
     @Override
+    public String getParameterValueType(String key) {
+        return null;
+    }
+
+    @Override
     public List<Exception> getErrors() {
         return Collections.emptyList();
     }

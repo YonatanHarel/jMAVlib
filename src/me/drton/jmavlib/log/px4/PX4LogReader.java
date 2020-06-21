@@ -105,6 +105,11 @@ public class PX4LogReader extends BinaryLogReader {
         return parameters;
     }
 
+    @Override
+    public String getParameterValueType(String key) {
+        return null;
+    }
+
     private void updateStatistics() throws IOException, FormatErrorException {
         seek(0);
         long packetsNum = 0;

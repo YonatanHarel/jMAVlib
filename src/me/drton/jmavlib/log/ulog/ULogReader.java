@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 
 import me.drton.jmavlib.log.BinaryLogReader;
 import me.drton.jmavlib.log.FormatErrorException;
+import org.json.JSONArray;
 
 /**
  * User: ton Date: 03.06.13 Time: 14:18
@@ -58,6 +59,8 @@ public class ULogReader extends BinaryLogReader {
     private boolean nestedParsingDone = false;
     private Map<String, Object> version = new HashMap<String, Object>();
     private Map<String, Object> parameters = new HashMap<String, Object>();
+    private Map<String, String> parametersValueType = new HashMap<>();
+
     public ArrayList<MessageLog> loggedMessages = new ArrayList<MessageLog>();
     private Map<String, List<Map<String, Object>>> ulogData = new HashMap<String, List<Map<String, Object>>>();
 
@@ -151,6 +154,11 @@ public class ULogReader extends BinaryLogReader {
     @Override
     public Map<String, Object> getParameters() {
         return parameters;
+    }
+
+    @Override
+    public String getParameterValueType(String key) {
+        return parametersValueType.get(key);
     }
 
     /**
@@ -299,6 +307,7 @@ public class ULogReader extends BinaryLogReader {
                 } else {
                     // add parameter to the parameters Map
                     parameters.put(msgParam.getKey(), msgParam.value);
+                    parametersValueType.put(msgParam.getKey(), msgParam.format.type);
                 }
 
             } else if (msg instanceof MessageInfo) {

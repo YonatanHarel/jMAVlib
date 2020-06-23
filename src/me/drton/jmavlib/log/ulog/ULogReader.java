@@ -59,7 +59,7 @@ public class ULogReader extends BinaryLogReader {
     private boolean nestedParsingDone = false;
     private Map<String, Object> version = new HashMap<String, Object>();
     private Map<String, Object> parameters = new HashMap<String, Object>();
-    private Map<String, String> parametersValueType = new HashMap<>();
+    private Map<String, String> parametersValueType = new HashMap<String, String>();
 
     public ArrayList<MessageLog> loggedMessages = new ArrayList<MessageLog>();
     private Map<String, List<Map<String, Object>>> ulogData = new HashMap<String, List<Map<String, Object>>>();
